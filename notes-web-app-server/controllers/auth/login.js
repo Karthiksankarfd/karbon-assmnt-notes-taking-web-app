@@ -1,35 +1,55 @@
-const User = require("../../models/userModel");
-const comparePassword = require("../../utils/comparepassword");
+const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
+const User = require("../../models/userModel");
 
-const login = async (req, res) => {
-  const { email, password } = req.body;
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const googleLogin = async (req, res) => {
+  const googleToken = req.headers.authorization?.split(" ")[1];
+
+  if (!googleToken) {
+    return res.status(400).json({ error: "Google token not provided" });
+  }
 
   try {
-    const user = await User.findOne({ email }).select("+password");
+    const ticket = await client.verifyIdToken({
+      idToken: googleToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    let user = await User.findOne({ email: payload.email }).populate("notes");
 
     if (!user) {
-      return res.status(404).json({ message: "No user found. Please sign up." });
+      user = await User.create({
+        name: payload.name,
+        loginType: "googlelogin",
+        email: payload.email,
+        profilePicture: payload.picture,
+        authProvider: "google",
+      });
     }
 
-    if (user.loginType === "standard") {
-      const isPasswordValid = await comparePassword(password, user.password); 
+    // Remove password from user before sending response
+    user.password = undefined;
 
-      if (!isPasswordValid) {
-        return res.status(403).json({ message: "Invalid password" });
-      }
-    }
+    // Create JWT token
+    const tokenPayload = { userId: user._id };
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
-    const payload = { userId: user._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user,
+    });
 
-    user.password = undefined; 
-
-    return res.status(200).json({ message: "Logged in", user, token });
-  } catch (e) {
-    console.error("Login error:", e.message);
-    return res.status(500).json({ message: "Internal server error" });
+  } catch (err) {
+    console.error("Google login error:", err);
+    return res.status(401).json({ error: "Invalid Google token" });
   }
 };
 
-module.exports = login;
+module.exports = googleLogin;

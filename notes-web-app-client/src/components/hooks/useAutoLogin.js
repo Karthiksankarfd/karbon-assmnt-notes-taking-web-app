@@ -39,7 +39,7 @@ const useAutoLogin = () => {
             });
         }catch(e){
             toast.update(loadingToast, {
-              render: e.message || "Session Expired",
+              render: res.e.message || "Session Expired",
               type: "error",
               isLoading: false,
               autoClose: 3000,

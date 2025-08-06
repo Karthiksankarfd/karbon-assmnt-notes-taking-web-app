@@ -67,6 +67,7 @@ const GoogleOauth = () => {
                       isLoading: false,
                       autoClose: 3000,
             } )
+            localStorage.setItem("notesapptoken" , res.data.token)
             setUser(res.data.user)
             setLoggedIn(true)
             navigateTo("/")

@@ -4,6 +4,6 @@ const router = express.Router();
 const editNote = require("../controllers/update/updateNote");
 const authMiddleware = require("../middleware/verifytokenmiddleware")
 
-router.post("/note/edit", editNote); 
+router.put("/note/edit", editNote); 
 
 module.exports = router;

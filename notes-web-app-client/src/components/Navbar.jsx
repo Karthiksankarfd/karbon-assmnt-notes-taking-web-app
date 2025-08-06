@@ -16,12 +16,12 @@ const Navbar = () => {
         </Link>
 
         {/* Hamburger Menu (Mobile) */}
-        <button
+        <div
           onClick={() => setIsOpen(!isOpen)}
           className="md:hidden focus:outline-none"
         >
           {isOpen ?  <button>x</button> : <button>open</button>}
-        </button>
+        </div>
 
         {/* Menu Items (Desktop) */}
         <div className="hidden md:flex items-center gap-6">

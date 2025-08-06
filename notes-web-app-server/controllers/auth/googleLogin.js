@@ -1,17 +1,15 @@
+const { OAuth2Client } = require("google-auth-library");
+const jwt = require("jsonwebtoken");
+const User = require("../../models/userModel");
 
-const  {OAuth2Client} = require("google-auth-library")
-
-// creating new instance of  OAuth2Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const User = require("../../models/userModel")
 
-
-    
 const googleLogin = async (req, res) => {
- 
-  const googleToken  = req.headers.authorization?.split(" ")[1];
+  const googleToken = req.headers.authorization?.split(" ")[1];
 
-  console.log(googleToken)
+  if (!googleToken) {
+    return res.status(400).json({ error: "Google token not provided" });
+  }
 
   try {
     const ticket = await client.verifyIdToken({
@@ -21,27 +19,37 @@ const googleLogin = async (req, res) => {
 
     const payload = ticket.getPayload();
 
-    let user = await User.findOne({ email: payload.email }).populate("notes")
+    let user = await User.findOne({ email: payload.email }).populate("notes");
 
-    if(!user){
-            user = await User.create({
-            name: payload.name,
-            loginType:"googlelogin",
-            email: payload.email,
-            profilePicture: payload.picture,
-            authProvider: "google",
+    if (!user) {
+      user = await User.create({
+        name: payload.name,
+        loginType: "googlelogin",
+        email: payload.email,
+        profilePicture: payload.picture,
+        authProvider: "google",
+      });
+    }
+
+    // Remove password from user before sending response
+    user.password = undefined;
+
+    // Create JWT token
+    const tokenPayload = { userId: user._id };
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
     });
 
-    }
-    console.log(user) ;
-    return res.status(200).json({ message:"Log in successfull" , user});
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user,
+    });
 
   } catch (err) {
-
-    return res.status(401).json({ error: "Error in google login...Invalid token" });
-
+    console.error("Google login error:", err);
+    return res.status(401).json({ error: "Invalid Google token" });
   }
-}
+};
 
 module.exports = googleLogin;
-

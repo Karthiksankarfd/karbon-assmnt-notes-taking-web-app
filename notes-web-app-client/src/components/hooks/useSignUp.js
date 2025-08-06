@@ -5,21 +5,22 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const useSignUp = () => {
-    
+
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
   const baseURL = import.meta.env.VITE_BASE_API_END_POINT;
 
   const signUp = async (formData) => {
 
     setLoading(true);
-   
+
 
     toast.loading("Creating account...", { toastId: "signup" });
 
     try {
 
-      await axios.post(`${baseURL}/auth/signup`, formData );
+      await axios.post(`${baseURL}/auth/signup`, formData);
 
       toast.update("signup", {
         render: "Account created successfully!",
